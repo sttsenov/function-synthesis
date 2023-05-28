@@ -45,7 +45,7 @@ class OperatorClass:
     _set_operations = dir(set)
     _frozenset_operations = dir(frozenset)
 
-    def record_references(self, func_object, func_body: str):
+    def record_references(self, func_object, func_body: list):
         references = []
 
         # Get the function's code object
