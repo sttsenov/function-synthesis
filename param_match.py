@@ -1,3 +1,4 @@
+import json
 from type_operations import OperatorClass
 
 TEST = """
@@ -61,6 +62,8 @@ def match_parameters(input_str):
     print('---------------------------------------------')
 
     references = operator.record_references(func_object, breakdown["body"])
+    f_data = json.dumps(references)
+
     for ref in references:
         print(f'Param name: {ref["param"]}')
         print(f'Reference variables: {ref["refs"]}')
@@ -76,6 +79,9 @@ def match_parameters(input_str):
 
             print('---------------------------------------------')
 
+    # Write to file
+    with open('files/func_breakdown.json', 'w') as fp:
+        fp.write(f_data)
 
 if __name__ == "__main__":
     match_parameters(TEST)
