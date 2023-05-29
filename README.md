@@ -26,12 +26,12 @@ def test(p0, p1):
     return x.startswith('1')
 ```
 
-Executing the project creates a JSON breakdown of the this function that looks like this:
-![JSON Breakdown of function](/screenshots/func_breakdown.png "Function Breakdown")
+Executing the project creates a JSON breakdown of the function that looks like this:
+![JSON Breakdown of function](./screenshots/func_breakdown.PNG "Function Breakdown")
 
 ## Current Limitations
 
-Currently this project doesn't have a good way to create connections between parameters.
+Currently, this project doesn't have a good way to create connections between parameters.
 For example ```x = p0 * p1``` means that local variable **x** refers to both parameters
 but that doesn't necessarily mean that it can be used to guess the type of both parameters.
 
