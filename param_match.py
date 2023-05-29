@@ -4,7 +4,8 @@ TEST = """
 def test(p0, p1):
     x = p0 * p1
     print(p0)
-    print(p1)
+    p0.upper()
+    return x.startswith('1')
 """
 
 
@@ -29,7 +30,7 @@ def breakdown_func(input_str: str):
             is_body = True
         elif is_body:
             line = line.lstrip().rstrip()
-            if line is not '':
+            if line != '':
                 func_body.append(line + '\n')
 
     breakdown["body"] = func_body
@@ -61,7 +62,19 @@ def match_parameters(input_str):
 
     references = operator.record_references(func_object, breakdown["body"])
     for ref in references:
-        print(f'{ref}')
+        print(f'Param name: {ref["param"]}')
+        print(f'Reference variables: {ref["refs"]}')
+        print(f'Method Calls:')
+        for method in ref["method_calls"]:
+            print('---------------------------------------------')
+
+            print(f'Method name: {method["method"]["name"]}')
+            print(f'Code line: {method["method"]["line"]}')
+            print(f'Possible data types: {method["possible_types"]}')
+            print(f'Takes arguments: {method["takes_arguments"]}')
+            print(f'Level of reference (0 -> direct, 1 -> indirect): {method["level"]}')
+
+            print('---------------------------------------------')
 
 
 if __name__ == "__main__":
