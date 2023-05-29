@@ -116,7 +116,8 @@ class OperatorClass:
             parameter_info = {
                 'param': param_name,
                 'refs': [],
-                'method_calls': []
+                'method_calls': [],
+                'possible_types': []
             }
             # Add the parameter info to the list
             references.append(parameter_info)
@@ -160,16 +161,24 @@ class OperatorClass:
             }
 
             for ref in references:
+                possible_types = []
                 noted_method_calls = []
+
                 if match_parameter(ref['param'], method_line):
                     noted_method_calls.append(method_dict)
+                    # The index number refers to the reference level
+                    possible_types.extend(builtin_method_types)
 
                 # Don't judge my naming conventions, I already judge them
                 for r in ref['refs']:
                     if match_parameter(r, method_line):
                         method_dict['level'] = 1    # Refers to an indirect parameter reference
+
+                        possible_types.extend(builtin_method_types)
                         noted_method_calls.append(method_dict)
+
                         break
                 ref['method_calls'].extend(noted_method_calls)
+                ref['possible_types'].append(possible_types)
 
         return references

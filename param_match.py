@@ -1,4 +1,5 @@
 import json
+from parameter_matcher.generator import Generator
 from type_operations import OperatorClass
 
 TEST = """
@@ -61,13 +62,17 @@ def match_parameters(input_str):
     print(f'Function methods: {dir(func_object)}')
     print('---------------------------------------------')
 
+    generator = Generator(breakdown["name"])
     references = operator.record_references(func_object, breakdown["body"])
-    f_data = json.dumps(references)
+    f_data = json.dumps(references, indent=4)
+
+    generator.consume(references, len(breakdown["params"]))
+    print(f'Possible Param Values: {generator.possible_param_values}')
+    print('---------------------------------------------')
 
     for ref in references:
         print(f'Param name: {ref["param"]}')
         print(f'Reference variables: {ref["refs"]}')
-        print(f'Method Calls:')
         for method in ref["method_calls"]:
             print('---------------------------------------------')
 
