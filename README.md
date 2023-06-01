@@ -16,12 +16,10 @@ This section gives a brief explanation about the idea of the different files ins
 
 | File | Description |
 | --- | -- |
-| generator | Handles the conversion from data types to their default data equivalents and records possible executions of the function.
-For example: str, int, list, dict -> '', 1, [], {} |
+| generator | Handles the conversion from data types to their default data equivalents and records possible executions of the function. For example: str, int, list, dict -> '', 1, [], {} |
 | helpers| Helpers functionalities like logging |
-| param_match | The main file of the project. Works with the **dis** package to break down the function's body into operations. 
-Based on the operations, possible data types for the parameters are recorded and a JSON representation of the breakdown in created. |
-| type_operations | Used to execute the project, breaks down the function docstring into 3 parts: name, parameters and body.  |
+| param_match | The main file of the project. Works with the **dis** package to break down the function's body into operations. Based on the operations, possible data types for the parameters are recorded and a JSON representation of the breakdown in created. |
+| type_operations | Used to execute the project, breaks down the function docstring into 3 parts: name, parameters and body. |
 
 ## Examples
 
