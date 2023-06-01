@@ -1,6 +1,7 @@
 import dis
 import re
 
+
 # Python Data Types
 # (Provided by W3Schools: https://www.w3schools.com/python/python_datatypes.asp)
 
@@ -38,11 +39,26 @@ def match_unary_operation(instr_name: str) -> str:
     if "NEGATIVE" in instr_name:
         return '__neg__'
     elif "NOT" in instr_name:
-        return ''   # TO-DO: Add operation
+        return ''  # TO-DO: Add operation
     elif "INVERT" in instr_name:
         return '__invert__'
 
     return '__pos__'
+
+
+def match_compare_operation(instr_name: str) -> str:
+    if instr_name.__eq__('<'):
+        return '__lt__'
+    if instr_name.__eq__('<='):
+        return '__le__'
+    if instr_name.__eq__('!='):
+        return '__ne__'
+    if instr_name.__eq__('>'):
+        return '__ge__'
+    if instr_name.__eq__('>='):
+        return '__gt__'
+
+    return '__eq__'
 
 
 def extend_possible_types(ref, index, possible_types):
@@ -252,7 +268,7 @@ class OperatorClass:
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
                 for ref in references:
                     if match_parameter(ref['param'], code_line):
-                        ref_set = set(ref['refs'])   # dumb ass naming
+                        ref_set = set(ref['refs'])  # dumb ass naming
                         ref_set.update(instr.argval)
                         ref['refs'] = list(ref_set)
 
@@ -287,7 +303,6 @@ class OperatorClass:
                 if len(method_names) == 0:
                     continue
 
-                print(f'METHOD_NAMES: {method_names}')
                 for method_name in method_names:
                     builtin_method_types = self.check_builtin_methods(method_name)
                     method_info = {
@@ -298,6 +313,22 @@ class OperatorClass:
 
                     method_dict = make_method_dict(method_info, builtin_method_types)
                     update_reference_with_method(references, code_line, method_dict, builtin_method_types)
+            elif instr.opname.__eq__('COMPARE_OP') and instr.argval is not None:
+                # TO-DO: Figure out if there's value in all this processing...
+                # It could be the case that COMPARE_OP refer to every data type
+                code_line = func_body[instr.positions.lineno - self._OFFSET]
+
+                method_name = match_compare_operation(instr.argval)
+                builtin_method_types = self.check_builtin_methods(method_name)
+
+                method_info = {
+                    'name': method_name,
+                    'line': code_line.replace('\n', ''),
+                    'binary': False
+                }
+
+                method_dict = make_method_dict(method_info, builtin_method_types)
+                update_reference_with_method(references, code_line, method_dict, builtin_method_types)
 
         # Check if any of the parameters have been used in a method call
         for method_info in possible_method_calls:
