@@ -1,92 +1,80 @@
 import itertools
 
 
-def grab_default_data(type_str: str):
-    match type_str:
-        case "str":
-            return ''
-        case "bool":
-            return True
-        case "dict":
-            return {}
-        case "int":
-            return 0
-        case "float":
-            return 0.0
-        case "complex":
-            return 0j
-        case "list":
-            return []
-        case "tuple":
-            return ()
-        case "range":
-            return range(0)
-        case "set":
-            return set()
-        case "frozenset":
-            return frozenset()
-    pass
-
-
-def create_default_values(ref):
-    default_values = []
-
-    # TO-DO: The program could not figure out a type
-    if len(ref['possible_types']) == 0:
-        pass
-
-    direct_ref = ref['possible_types'][0]
-    indirect_ref = ref['possible_types'][1]
-
-    # If there are direct reference guesses then we should just look at them
-    if len(direct_ref) > 0:
-        for type_str in direct_ref:
-            default_values.append(grab_default_data(type_str))
-
-    elif len(indirect_ref) > 0:
-        for type_str in indirect_ref:
-            default_values.append(grab_default_data(type_str))
-
-    return default_values
-
-
 class Generator:
+    _DEFAULT_DATA = {
+        'str': '',
+        'bool': True,
+        'dict': {},
+
+        'int': 1,
+        'float': 0.1,
+        'complex': 1j,
+
+        'list': [],
+        'tuple': (),
+        'range': range(0),
+
+        'set': set(),
+        'frozenset': frozenset()
+    }
 
     def __init__(self, func_name):
         self.func_name = func_name
-        self.possible_param_values = []
+        self.possible_method_calls = []
 
-    def consume(self, reference_obj, param_num):
+    def grab_default_data(self, type_str: str, include_all=False):
+        if include_all:
+            return list(self._DEFAULT_DATA.values())
+
+        for key, value in self._DEFAULT_DATA.items():
+            if type_str.__eq__(key):
+                return value
+        pass
+
+    def create_default_values(self, ref):
+        default_values = []
+
+        # The program could not figure out a type, so it grab all values
+        if len(ref['possible_types']) == 0:
+            return self.grab_default_data('', include_all=True)
+
+        direct_ref = ref['possible_types'][0]
+
+        # If there are direct reference guesses then we should just look at them
+        if len(direct_ref) > 0:
+            for type_str in direct_ref:
+                default_values.append(self.grab_default_data(type_str))
+        # Check if there are indirect references
+        elif len(ref['possible_types']) > 1:
+            indirect_ref = ref['possible_types'][1]
+            for type_str in indirect_ref:
+                default_values.append(self.grab_default_data(type_str))
+
+        return default_values
+
+    def consume(self, reference_obj):
         values_array = []
-        possible_param_values_set = set()
+        possible_method_calls_set = set()
 
         for i in range(len(reference_obj)):
             ref = reference_obj[i]
-            values_array.append(create_default_values(ref))
+            values_array.append(self.create_default_values(ref))
 
-            # param0 -> str, int
-            # param0 -> ['', 0]
-
-            for j in range(i, len(reference_obj) - 1):
-                ref_next = reference_obj[j]
-                values_array.append(create_default_values(ref_next))
-
-                # param1 -> list, int
-                # param1 -> [[], 0]
-
-        for value in itertools.permutations(values_array, param_num):
+        print(f'Values Array: {values_array}')
+        for value in list(itertools.product(*values_array)):
             value_str = f'{self.func_name}('
             for elem in value:
-                if elem[0] == '':
+                if elem == '':
                     value_str += '"", '
                 else:
-                    value_str += f'{elem[0]}, '
+                    value_str += f'{elem}, '
 
             value_str = value_str.rstrip()[:-1] + ")"
 
             # TO-DO: Compile the value_str before adding it to the set
 
-            possible_param_values_set.add(value_str)
+            possible_method_calls_set.add(value_str)
 
             # solution -> [
             #   "'', []",
@@ -95,4 +83,4 @@ class Generator:
             #   "0, 0"
             # ]
 
-        self.possible_param_values = list(possible_param_values_set)
+        self.possible_method_calls = list(possible_method_calls_set)

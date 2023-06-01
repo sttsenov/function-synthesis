@@ -1,7 +1,8 @@
-# Python Data Types
-# (Provided by W3Schools: https://www.w3schools.com/python/python_datatypes.asp)
 import dis
 import re
+
+# Python Data Types
+# (Provided by W3Schools: https://www.w3schools.com/python/python_datatypes.asp)
 
 # Text Type: 	str
 # Numeric Types: 	int, float, complex
@@ -21,8 +22,79 @@ def check_method_takes_args(method_name: str, code_line: str):
     return not code_line.split(method_name)[-1].startswith('()')
 
 
-class OperatorClass:
+def make_method_dict(method_info: dict, builtin_method_types):
+    takes_args = check_method_takes_args(method_info['name'], method_info['line'])
+    method_dict = {
+        'method': method_info,
+        'possible_types': builtin_method_types,
+        'takes_arguments': takes_args,
+        'level': 0  # Refers to a direct parameter reference
+    }
 
+    return method_dict
+
+
+def match_unary_operation(instr_name: str) -> str:
+    if "NEGATIVE" in instr_name:
+        return '__neg__'
+    elif "NOT" in instr_name:
+        return ''   # TO-DO: Add operation
+    elif "INVERT" in instr_name:
+        return '__invert__'
+
+    return '__pos__'
+
+
+def extend_possible_types(ref, index, possible_types):
+    """
+
+    :param ref:
+    :param index: Refers to either direct or indirect reference
+    :param possible_types:
+    :return:
+    """
+    possible_types = list(possible_types)
+    if len(ref['possible_types']) > index:
+        # Probably a very ugly way to avoid repeating entries
+        possible_types_set = set(ref['possible_types'][index])
+        possible_types_set.update(possible_types)
+        ref['possible_types'][index] = list(possible_types_set)
+    else:
+        ref['possible_types'].append(possible_types)
+
+
+def update_reference_with_method(references, method_line, method_dict, builtin_method_types):
+    for ref in references:
+        possible_types = set()
+        noted_method_calls = []
+
+        if match_parameter(ref['param'], method_line):
+            noted_method_calls.append(method_dict)
+            # The index number refers to the reference level
+            possible_types.update(builtin_method_types)
+
+            ref['method_calls'].extend(noted_method_calls)
+            if len(noted_method_calls) > 0:
+                # If it's another direct reference then just update the first list
+                extend_possible_types(ref, 0, possible_types)
+                continue
+
+        # Don't judge my naming conventions, I already judge them
+        for r in ref['refs']:
+            if match_parameter(r, method_line):
+                method_dict['level'] = 1  # Refers to an indirect parameter reference
+
+                possible_types.update(builtin_method_types)
+                noted_method_calls.append(method_dict)
+
+                break
+
+        ref['method_calls'].extend(noted_method_calls)
+        if len(noted_method_calls) > 0:
+            extend_possible_types(ref, 1, possible_types)
+
+
+class OperatorClass:
     _OFFSET = 3
 
     # Text type
@@ -48,7 +120,7 @@ class OperatorClass:
     _set_operations = dir(set)
     _frozenset_operations = dir(frozenset)
 
-    _OPERATIONS = {
+    _DATA_TYPE_OPERATIONS = {
         # Text type
         'str': dir(str),
         # Boolean type
@@ -68,13 +140,43 @@ class OperatorClass:
         'frozenset': dir(frozenset)
     }
 
+    # Python Mapping Operators to Functions Table
+    # (Provided by the Python documentation: https://docs.python.org/3/library/operator.html)
+    _BINARY_OPERATORS = {
+        '+': '__add__',
+        '-': '__sub__',
+        '*': '__mul__',
+        '/': '__truediv__',
+        '//': '__floordiv__',
+        # TO-DO: Include bitwise AND: a & b
+        '^': '__xor__',
+        # TO-DO: Include bitwise OR: a | b
+        '**': '__pow__',
+        '<<': '__lshift__',
+        '>>': '__rshift__',
+        '%': '__mod__',
+        # TO-DO: Include matmul: a @ b
+    }
+
+    def match_binary_operation(self, instr_argrepr: str):
+        possible_types = []
+
+        for sign, operation in self._BINARY_OPERATORS.items():
+            if sign.__eq__(instr_argrepr):
+                if type(operation) == list:
+                    possible_types.extend(operation)
+                else:
+                    possible_types.append(operation)
+
+        return possible_types
+
     def check_builtin_methods(self, method_name: str):
         possible_types = []
         method_name = method_name.lstrip().rstrip()
 
         # Check if the method can be found in the builtin methods
         # for the recorded data types
-        for type_str, operations in self._OPERATIONS.items():
+        for type_str, operations in self._DATA_TYPE_OPERATIONS.items():
             # Decided to use a loop instead of a 'str in list' check
             # just to be able to break out early
             for op in operations:
@@ -106,7 +208,7 @@ class OperatorClass:
         # Get the names of the parameters
         param_names = code.co_varnames[:code.co_argcount]
         # Get the names of local variables within the function
-        local_variables = code.co_varnames[code.co_argcount:]
+        # local_variables = code.co_varnames[code.co_argcount:]
         # Get the names of all built-in/library methods that get called in the function
         method_calls = code.co_names
 
@@ -126,22 +228,77 @@ class OperatorClass:
         possible_method_calls = []
 
         for instr in instructions:
-            print(instr)
+            # print(instr)
+
+            # CONTAINS_OP -> el in seq
+            # IS_OP -> a is b -> a is not b
+
+            # This works for single elements a[index] and for slices: a[i:j]
+            # STORE_SUBSCR -> a[index] = b  -> __setitem__
+            # DELETE_SUBSCR -> del a[index] -> __delitem__
+            # BINARY_SUBSCR -> a = b[index] -> __getitem__
+
+            # COMPARE_OP ->
+            #   a < b -> lt -> __lt__
+            #   a <= b -> le -> __le__
+            #   a == b -> eq -> __eq__
+            #   a != b -> ne -> __ne__
+            #   a > b -> ge -> __ge__
+            #   a >= b -> gt -> __gt__
+
             # Get only operations that store value
             if instr.opname.startswith('STORE_') and instr.argval is not None:
                 # Get the actual line of code (done after the if because negative indexes are a thing)
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
                 for ref in references:
                     if match_parameter(ref['param'], code_line):
-                        ref['refs'] .append(instr.argval)  # dumb ass naming
+                        ref_set = set(ref['refs'])   # dumb ass naming
+                        ref_set.update(instr.argval)
+                        ref['refs'] = list(ref_set)
 
             elif instr.opname.__eq__('LOAD_METHOD') and instr.argval is not None:
                 if instr.argval in method_calls:
                     code_line = func_body[instr.positions.lineno - self._OFFSET]
                     possible_method_calls.append({
                         'name': instr.argval,
-                        'line': code_line.replace('\n', '')
+                        'line': code_line.replace('\n', ''),
                     })
+            elif instr.opname.startswith('UNARY_'):
+                code_line = func_body[instr.positions.lineno - self._OFFSET]
+
+                method_name = match_unary_operation(instr.opname)
+                if method_name == '':
+                    continue
+
+                builtin_method_types = self.check_builtin_methods(method_name)
+                method_info = {
+                    'name': method_name,
+                    'line': code_line.replace('\n', ''),
+                    'binary': False
+                }
+
+                method_dict = make_method_dict(method_info, builtin_method_types)
+                update_reference_with_method(references, code_line, method_dict, builtin_method_types)
+
+            # Handle BINARY_OP where the argepr = '+', '*'..
+            elif instr.opname.__eq__('BINARY_OP') and instr.argrepr is not None:
+                code_line = func_body[instr.positions.lineno - self._OFFSET]
+                method_names = self.match_binary_operation(instr.argrepr)
+                if len(method_names) == 0:
+                    continue
+
+                print(f'METHOD_NAMES: {method_names}')
+                for method_name in method_names:
+                    builtin_method_types = self.check_builtin_methods(method_name)
+                    method_info = {
+                        'name': method_name,
+                        'line': code_line.replace('\n', ''),
+                        'binary': False
+                    }
+
+                    method_dict = make_method_dict(method_info, builtin_method_types)
+                    update_reference_with_method(references, code_line, method_dict, builtin_method_types)
+
         # Check if any of the parameters have been used in a method call
         for method_info in possible_method_calls:
             method_name = method_info['name']
@@ -150,35 +307,9 @@ class OperatorClass:
             builtin_method_types = self.check_builtin_methods(method_name)
             # No point in continuing if we cannot map the method
             if len(builtin_method_types) == 0:
-                break
+                continue
 
-            takes_args = check_method_takes_args(method_name, method_line)
-            method_dict = {
-                'method': method_info,
-                'possible_types': builtin_method_types,
-                'takes_arguments': takes_args,
-                'level': 0  # Refers to a direct parameter reference
-            }
-
-            for ref in references:
-                possible_types = []
-                noted_method_calls = []
-
-                if match_parameter(ref['param'], method_line):
-                    noted_method_calls.append(method_dict)
-                    # The index number refers to the reference level
-                    possible_types.extend(builtin_method_types)
-
-                # Don't judge my naming conventions, I already judge them
-                for r in ref['refs']:
-                    if match_parameter(r, method_line):
-                        method_dict['level'] = 1    # Refers to an indirect parameter reference
-
-                        possible_types.extend(builtin_method_types)
-                        noted_method_calls.append(method_dict)
-
-                        break
-                ref['method_calls'].extend(noted_method_calls)
-                ref['possible_types'].append(possible_types)
+            method_dict = make_method_dict(method_info, builtin_method_types)
+            update_reference_with_method(references, method_line, method_dict, builtin_method_types)
 
         return references

@@ -3,11 +3,8 @@ from parameter_matcher.generator import Generator
 from type_operations import OperatorClass
 
 TEST = """
-def test(p0, p1):
-    x = p0 * p1
-    print(p0)
-    p0.upper()
-    return x.startswith('1')
+def test(p0, p2):
+    return p0 / p2
 """
 
 
@@ -32,8 +29,8 @@ def breakdown_func(input_str: str):
             is_body = True
         elif is_body:
             line = line.lstrip().rstrip()
-            if line != '':
-                func_body.append(line + '\n')
+            # if line != '':
+            func_body.append(line + '\n')
 
     breakdown["body"] = func_body
     return breakdown
@@ -45,9 +42,6 @@ def match_parameters(input_str):
     # Compile the provided function
     compiler = compile(input_str, '', 'exec')
     exec(compiler, _globals)
-
-    # Create function execution options
-    func_examples = """test(0, 0)"""
 
     operator = OperatorClass()
     breakdown = breakdown_func(input_str)
@@ -64,10 +58,15 @@ def match_parameters(input_str):
 
     generator = Generator(breakdown["name"])
     references = operator.record_references(func_object, breakdown["body"])
-    f_data = json.dumps(references, indent=4)
 
-    generator.consume(references, len(breakdown["params"]))
-    print(f'Possible Param Values: {generator.possible_param_values}')
+    f_data = json.dumps(references, indent=4)
+    # Write to file
+    with open('files/func_breakdown.json', 'w') as fp:
+        fp.write(f_data)
+
+    # Create function execution options
+    generator.consume(references)
+    print(f'Possible Method Calls: {generator.possible_method_calls}')
     print('---------------------------------------------')
 
     for ref in references:
@@ -84,9 +83,6 @@ def match_parameters(input_str):
 
             print('---------------------------------------------')
 
-    # Write to file
-    with open('files/func_breakdown.json', 'w') as fp:
-        fp.write(f_data)
 
 if __name__ == "__main__":
     match_parameters(TEST)
