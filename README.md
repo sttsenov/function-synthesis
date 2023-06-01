@@ -10,6 +10,19 @@ of synthetic data for Python classes.
 This project is not current added as a package and need to be pulled from the repository.
 The code can be easily executed from any IDE by running the **param_match.py**
 
+## File Explainer
+
+This section gives a brief explanation about the idea of the different files inside the project.
+
+| File | Description |
+| --- | -- |
+| generator | Handles the conversion from data types to their default data equivalents and records possible executions of the function.
+For example: str, int, list, dict -> '', 1, [], {} |
+| helpers| Helpers functionalities like logging |
+| param_match | The main file of the project. Works with the **dis** package to break down the function's body into operations. 
+Based on the operations, possible data types for the parameters are recorded and a JSON representation of the breakdown in created. |
+| type_operations | Used to execute the project, breaks down the function docstring into 3 parts: name, parameters and body.  |
+
 ## Examples
 
 As seen in the **param_match.py** there is a test docstring containing a function:
@@ -28,6 +41,8 @@ def test(p0, p1):
 
 Executing the project creates a JSON breakdown of the function that looks like this:
 ![JSON Breakdown of function](./screenshots/func_breakdown.PNG "Function Breakdown")
+
+Finally, a list of all the possible function calls is returned. The program guarantees that all the returned examples compile correctly.
 
 ## Current Limitations
 
