@@ -1,4 +1,5 @@
 import itertools
+from helpers import log
 
 
 class Generator:
@@ -71,9 +72,6 @@ class Generator:
                     value_str += f'{elem}, '
 
             value_str = value_str.rstrip()[:-1] + ")"
-
-            # TO-DO: Compile the value_str before adding it to the set
-
             possible_method_calls_set.add(value_str)
 
             # solution -> [
