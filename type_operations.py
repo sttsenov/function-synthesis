@@ -35,6 +35,15 @@ def make_method_dict(method_info: dict, builtin_method_types):
     return method_dict
 
 
+def match_subscribe_operation(instr_name: str) -> str:
+    if instr_name.__eq__('DELETE_SUBSCR'):
+        return '__delitem__'
+    elif instr_name.__eq__('BINARY_SUBSCR'):
+        return '__getitem__'
+
+    return '__setitem__'
+
+
 def match_unary_operation(instr_name: str) -> str:
     if "NEGATIVE" in instr_name:
         return '__neg__'
@@ -83,6 +92,11 @@ def update_reference_with_method(references, method_line, method_dict, builtin_m
     for ref in references:
         possible_types = set()
         noted_method_calls = []
+
+        # TO-DO: Fix the level system to take account of operations
+        # For example, currently: x[0] = p0
+        # will record the __setitem__ operation but with level 0
+        # the data should record level 1 instead
 
         if match_parameter(ref['param'], method_line):
             noted_method_calls.append(method_dict)
@@ -244,12 +258,13 @@ class OperatorClass:
         possible_method_calls = []
 
         for instr in instructions:
-            # print(instr)
+            print(instr)
 
-            # CONTAINS_OP -> el in seq
-            # IS_OP -> a is b -> a is not b
+            # TO-DO: CONTAINS_OP -> el in seq -> __contains__
+            # IS_OP ->
+            #   a is b -> is_(a,b)
+            #   a is not b -> is_not(a, b)
 
-            # This works for single elements a[index] and for slices: a[i:j]
             # STORE_SUBSCR -> a[index] = b  -> __setitem__
             # DELETE_SUBSCR -> del a[index] -> __delitem__
             # BINARY_SUBSCR -> a = b[index] -> __getitem__
@@ -271,6 +286,21 @@ class OperatorClass:
                         ref_set = set(ref['refs'])  # dumb ass naming
                         ref_set.update(instr.argval)
                         ref['refs'] = list(ref_set)
+            elif instr.opname.__contains__('_SUBSCR'):
+                code_line = func_body[instr.positions.lineno - self._OFFSET]
+
+                method_name = match_subscribe_operation(instr.opname)
+                if method_name == '':
+                    continue
+
+                builtin_method_types = self.check_builtin_methods(method_name)
+                method_info = {
+                    'name': method_name,
+                    'line': code_line.replace('\n', '')
+                }
+
+                method_dict = make_method_dict(method_info, builtin_method_types)
+                update_reference_with_method(references, code_line, method_dict, builtin_method_types)
 
             elif instr.opname.__eq__('LOAD_METHOD') and instr.argval is not None:
                 if instr.argval in method_calls:
@@ -289,8 +319,7 @@ class OperatorClass:
                 builtin_method_types = self.check_builtin_methods(method_name)
                 method_info = {
                     'name': method_name,
-                    'line': code_line.replace('\n', ''),
-                    'binary': False
+                    'line': code_line.replace('\n', '')
                 }
 
                 method_dict = make_method_dict(method_info, builtin_method_types)
@@ -307,8 +336,7 @@ class OperatorClass:
                     builtin_method_types = self.check_builtin_methods(method_name)
                     method_info = {
                         'name': method_name,
-                        'line': code_line.replace('\n', ''),
-                        'binary': False
+                        'line': code_line.replace('\n', '')
                     }
 
                     method_dict = make_method_dict(method_info, builtin_method_types)
@@ -323,8 +351,7 @@ class OperatorClass:
 
                 method_info = {
                     'name': method_name,
-                    'line': code_line.replace('\n', ''),
-                    'binary': False
+                    'line': code_line.replace('\n', '')
                 }
 
                 method_dict = make_method_dict(method_info, builtin_method_types)

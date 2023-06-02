@@ -4,9 +4,9 @@ from parameter_matcher.generator import Generator
 from type_operations import OperatorClass
 
 TEST = """
-def test(p0, p2):
-    x = p2 > 0
-    return p0 / p2
+def function(p0, p1):
+    x[0] = p1 > 0
+    return p0 / p1
 """
 
 
