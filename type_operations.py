@@ -258,7 +258,7 @@ class OperatorClass:
         possible_method_calls = []
 
         for instr in instructions:
-            print(instr)
+            # print(instr)
 
             # TO-DO: CONTAINS_OP -> el in seq -> __contains__
             # IS_OP ->
@@ -286,6 +286,7 @@ class OperatorClass:
                         ref_set = set(ref['refs'])  # dumb ass naming
                         ref_set.update(instr.argval)
                         ref['refs'] = list(ref_set)
+
             elif instr.opname.__contains__('_SUBSCR'):
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
 
@@ -293,14 +294,10 @@ class OperatorClass:
                 if method_name == '':
                     continue
 
-                builtin_method_types = self.check_builtin_methods(method_name)
-                method_info = {
+                possible_method_calls.append({
                     'name': method_name,
-                    'line': code_line.replace('\n', '')
-                }
-
-                method_dict = make_method_dict(method_info, builtin_method_types)
-                update_reference_with_method(references, code_line, method_dict, builtin_method_types)
+                    'line': code_line.replace('\n', ''),
+                })
 
             elif instr.opname.__eq__('LOAD_METHOD') and instr.argval is not None:
                 if instr.argval in method_calls:
@@ -316,14 +313,10 @@ class OperatorClass:
                 if method_name == '':
                     continue
 
-                builtin_method_types = self.check_builtin_methods(method_name)
-                method_info = {
+                possible_method_calls.append({
                     'name': method_name,
-                    'line': code_line.replace('\n', '')
-                }
-
-                method_dict = make_method_dict(method_info, builtin_method_types)
-                update_reference_with_method(references, code_line, method_dict, builtin_method_types)
+                    'line': code_line.replace('\n', ''),
+                })
 
             # Handle BINARY_OP where the argepr = '+', '*'..
             elif instr.opname.__eq__('BINARY_OP') and instr.argrepr is not None:
@@ -333,29 +326,28 @@ class OperatorClass:
                     continue
 
                 for method_name in method_names:
-                    builtin_method_types = self.check_builtin_methods(method_name)
-                    method_info = {
+                    possible_method_calls.append({
                         'name': method_name,
-                        'line': code_line.replace('\n', '')
-                    }
+                        'line': code_line.replace('\n', ''),
+                    })
 
-                    method_dict = make_method_dict(method_info, builtin_method_types)
-                    update_reference_with_method(references, code_line, method_dict, builtin_method_types)
             elif instr.opname.__eq__('COMPARE_OP') and instr.argval is not None:
                 # TO-DO: Figure out if there's value in all this processing...
                 # It could be the case that COMPARE_OP refer to every data type
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
-
                 method_name = match_compare_operation(instr.argval)
-                builtin_method_types = self.check_builtin_methods(method_name)
 
-                method_info = {
+                possible_method_calls.append({
                     'name': method_name,
-                    'line': code_line.replace('\n', '')
-                }
+                    'line': code_line.replace('\n', ''),
+                })
 
-                method_dict = make_method_dict(method_info, builtin_method_types)
-                update_reference_with_method(references, code_line, method_dict, builtin_method_types)
+            elif instr.opname.__eq__('CONTAINS_OP'):
+                code_line = func_body[instr.positions.lineno - self._OFFSET]
+                possible_method_calls.append({
+                    'name': '__contains__',
+                    'line': code_line.replace('\n', ''),
+                })
 
         # Check if any of the parameters have been used in a method call
         for method_info in possible_method_calls:

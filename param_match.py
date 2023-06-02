@@ -5,7 +5,7 @@ from type_operations import OperatorClass
 
 TEST = """
 def function(p0, p1):
-    x[0] = p1 > 0
+    x = p0 + 10
     return p0 / p1
 """
 
