@@ -23,6 +23,12 @@ def check_method_takes_args(method_name: str, code_line: str):
     return not code_line.split(method_name)[-1].startswith('()')
 
 
+def grab_argval(code_line: str):
+    # TO-DO: Check how this works when unpacking values: x, y = y, x
+    # Removes square brackets
+    return code_line.split('=')[0].strip().split('[')[0]
+
+
 def make_method_dict(method_info: dict, builtin_method_types):
     takes_args = check_method_takes_args(method_info['name'], method_info['line'])
     method_dict = {
@@ -90,13 +96,15 @@ def extend_possible_types(ref, index, possible_types):
 
 def update_reference_with_method(references, method_line, method_dict, builtin_method_types):
     for ref in references:
+        # TO-DO: Figure out a set operation for the possible_types field
+        # There should be exclusion in place that makes sure that types that would cause an exception get removed
+        # For example:
+        #   p0 = 5 + 10 -> will note an int data type for "p0"
+        #   p0[1:3] -> will note a sequence data type for "p0"
+        #   In this case these two might be mutually exclusive
+
         possible_types = set()
         noted_method_calls = []
-
-        # TO-DO: Fix the level system to take account of operations
-        # For example, currently: x[0] = p0
-        # will record the __setitem__ operation but with level 0
-        # the data should record level 1 instead
 
         if match_parameter(ref['param'], method_line):
             noted_method_calls.append(method_dict)
@@ -126,6 +134,7 @@ def update_reference_with_method(references, method_line, method_dict, builtin_m
 
 class OperatorClass:
     _OFFSET = 3
+    _SUBSCR_REGEX = re.compile(r'\w+\[[\w:]+\]')
 
     # Text type
     _str_operations = dir(str)
@@ -202,7 +211,7 @@ class OperatorClass:
 
     def check_builtin_methods(self, method_name: str):
         possible_types = []
-        method_name = method_name.lstrip().rstrip()
+        method_name = method_name.strip()
 
         # Check if the method can be found in the builtin methods
         # for the recorded data types
@@ -260,8 +269,9 @@ class OperatorClass:
         for instr in instructions:
             # print(instr)
 
-            # TO-DO: CONTAINS_OP -> el in seq -> __contains__
-            # IS_OP ->
+            # CONTAINS_OP -> el in seq -> __contains__
+
+            # TO-DO: IS_OP ->
             #   a is b -> is_(a,b)
             #   a is not b -> is_not(a, b)
 
@@ -278,25 +288,47 @@ class OperatorClass:
             #   a >= b -> gt -> __gt__
 
             # Get only operations that store value
-            if instr.opname.startswith('STORE_') and instr.argval is not None:
+            # NOTE: Store operations should be treated independently
+            if instr.opname.startswith('STORE_'):
                 # Get the actual line of code (done after the if because negative indexes are a thing)
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
+
+                argument = instr.argval
+                # Handle operations like STORE_SUBSCR
+                if argument is None:
+                    argument = grab_argval(code_line)
+
                 for ref in references:
                     if match_parameter(ref['param'], code_line):
                         ref_set = set(ref['refs'])  # dumb ass naming
-                        ref_set.update(instr.argval)
+                        ref_set.update(argument)
                         ref['refs'] = list(ref_set)
 
-            elif instr.opname.__contains__('_SUBSCR'):
-                code_line = func_body[instr.positions.lineno - self._OFFSET]
+            if instr.opname.__contains__('_SUBSCR'):
+                # print(instr)
+                code_line = func_body[instr.positions.lineno - self._OFFSET].replace('\n', '')
+                # Breakdown the line based on the offset of the operation
+                operation_partition = code_line[:instr.positions.col_offset]
 
+                # Finds the index of the last square brackets that should be included
+                start_index = operation_partition.rfind('[')
+                end_index = code_line[start_index:].find(']') + (start_index + 1)
+
+                operation_partition = code_line[:end_index]
+                variable_call = self._SUBSCR_REGEX.findall(operation_partition)[-1]
+
+                # TO-DO: Decide whether I should introduce new field in the method_info dictionary that notes
+                # that the algorithm is dealing with a subscription operator
+
+                # Benefit: That will get to record the line of code and not just the sector from that line
+                # Drawback: Will require more processing power for three types of operators
                 method_name = match_subscribe_operation(instr.opname)
                 if method_name == '':
                     continue
 
                 possible_method_calls.append({
                     'name': method_name,
-                    'line': code_line.replace('\n', ''),
+                    'line': variable_call,
                 })
 
             elif instr.opname.__eq__('LOAD_METHOD') and instr.argval is not None:
@@ -321,6 +353,7 @@ class OperatorClass:
             # Handle BINARY_OP where the argepr = '+', '*'..
             elif instr.opname.__eq__('BINARY_OP') and instr.argrepr is not None:
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
+
                 method_names = self.match_binary_operation(instr.argrepr)
                 if len(method_names) == 0:
                     continue
