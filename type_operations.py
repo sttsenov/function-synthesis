@@ -2,6 +2,10 @@ import dis
 import re
 
 
+# TO-DO NEXT:
+# Handle the mutual exclusion of types
+# That has the highest priority right now
+
 # Python Data Types
 # (Provided by W3Schools: https://www.w3schools.com/python/python_datatypes.asp)
 
@@ -96,7 +100,6 @@ def extend_possible_types(ref, index, possible_types):
 
 def update_parameter_references(references, method_line, argument,
                                 match_param_field='param', curr_level=0, run=5):
-
     # Go through the parameters
     for ref in references:
         # Grab the value that needs to be matched
@@ -104,8 +107,8 @@ def update_parameter_references(references, method_line, argument,
         # Or the 'refs' field which is a list
         if match_param_field == 'refs' and len(ref['refs']) > curr_level - 1:
             vals_to_match = ref['refs'][curr_level - 1]
-            # print(f'Level {curr_level} ref array for param {ref["param"]}: {vals_to_match}')
-            # print(f'Line: {method_line}')
+            print(f'Level {curr_level} ref array for param {ref["param"]}: {vals_to_match}')
+            print(f'Line: {method_line}')
 
             for val in vals_to_match:
                 if match_parameter(val, method_line):
@@ -298,9 +301,6 @@ class OperatorClass:
         :return: a reference map
         """
 
-        # TO-DO: Figure out a level of abstraction that will be able to handle other levels of referencing
-        # and will be able to remove one of the current limitations of the algorithm
-
         # TO-DO: Eventually work on dealing with type hints, args and kwargs...
         references = []
 
@@ -327,6 +327,7 @@ class OperatorClass:
 
         instructions = list(dis.get_instructions(code))
         possible_method_calls = []
+        possible_param_references = {}
 
         for instr in instructions:
             # print(instr)
@@ -352,7 +353,7 @@ class OperatorClass:
             # Get only operations that store value
             # NOTE: Store operations should be treated independently
             if instr.opname.startswith('STORE_'):
-                # print(instr)
+                print(instr)
                 # Get the actual line of code (done after the if because negative indexes are a thing)
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
 
@@ -361,7 +362,13 @@ class OperatorClass:
                 if argument is None:
                     argument = grab_argval(code_line)
 
-                update_parameter_references(references, code_line, argument)
+                # Store the arguments and lines into a separate dict to capture the level of abstraction
+                if argument in possible_param_references.keys():
+                    param_ref_list = [possible_param_references[argument], code_line]
+                    possible_param_references[argument] = param_ref_list
+                else:
+                    possible_param_references[argument] = code_line
+                # update_parameter_references(references, code_line, argument)
 
             if instr.opname.__contains__('_SUBSCR'):
                 # print(instr)
@@ -440,6 +447,15 @@ class OperatorClass:
                     'name': '__contains__',
                     'line': code_line.replace('\n', ''),
                 })
+
+        print(f'Possible Param Ref: {possible_param_references}')
+        abstraction_level = len(possible_param_references)
+        for arg, value in possible_param_references.items():
+            if type(value) == list:
+                for line in value:
+                    update_parameter_references(references, line, arg, run=abstraction_level)
+            else:
+                update_parameter_references(references, value, arg, run=abstraction_level)
 
         # Check if any of the parameters have been used in a method call
         for method_info in possible_method_calls:
