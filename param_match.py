@@ -9,6 +9,7 @@ def function(p0, p1):
     y[1] = p1[1:2] - p0[2]
     z = y
     z = z / 10
+    z = y / 10
     d = x
     p = d
 
@@ -16,6 +17,7 @@ def function(p0, p1):
     a = p
     return p0 / p1
 """
+
 
 # NOTE: Adding something like 'b = x' breaks the recursion algorithm
 
@@ -57,15 +59,15 @@ def match_parameters(input_str):
     operator = OperatorClass()
     breakdown = breakdown_func(input_str)
     func_object = _globals[breakdown["name"]]
-
-    print(f'NAME: {breakdown["name"]}')
-    print(f'PARAMS: {breakdown["params"]}')
-    print(f'FUNC BODY: {breakdown["body"]}')
-
-    print('---------------------------------------------')
-    print(f'Function object: {func_object}')
-    print(f'Function methods: {dir(func_object)}')
-    print('---------------------------------------------')
+    #
+    # print(f'NAME: {breakdown["name"]}')
+    # print(f'PARAMS: {breakdown["params"]}')
+    # print(f'FUNC BODY: {breakdown["body"]}')
+    #
+    # print('---------------------------------------------')
+    # print(f'Function object: {func_object}')
+    # print(f'Function methods: {dir(func_object)}')
+    # print('---------------------------------------------')
 
     generator = Generator(breakdown["name"])
     references = operator.record_references(func_object, breakdown["body"])
@@ -92,24 +94,24 @@ def match_parameters(input_str):
 
     except Exception as e:
         log('ERROR', e)
-
-    print(f'Possible Method Calls: {possible_method_calls}')
-    print(f'Actual Method Calls: {method_calls}')
-    print('---------------------------------------------')
-
-    for ref in references:
-        print(f'Param name: {ref["param"]}')
-        print(f'Reference variables: {ref["refs"]}')
-        for method in ref["method_calls"]:
-            print('---------------------------------------------')
-
-            print(f'Method name: {method["method"]["name"]}')
-            print(f'Code line: {method["method"]["line"]}')
-            print(f'Possible data types: {method["possible_types"]}')
-            print(f'Takes arguments: {method["takes_arguments"]}')
-            print(f'Level of reference (0 -> direct, 1 -> indirect): {method["level"]}')
-
-            print('---------------------------------------------')
+    #
+    # print(f'Possible Method Calls: {possible_method_calls}')
+    # print(f'Actual Method Calls: {method_calls}')
+    # print('---------------------------------------------')
+    #
+    # for ref in references:
+    #     print(f'Param name: {ref["param"]}')
+    #     print(f'Reference variables: {ref["refs"]}')
+    #     for method in ref["method_calls"]:
+    #         print('---------------------------------------------')
+    #
+    #         print(f'Method name: {method["method"]["name"]}')
+    #         print(f'Code line: {method["method"]["line"]}')
+    #         print(f'Possible data types: {method["possible_types"]}')
+    #         print(f'Takes arguments: {method["takes_arguments"]}')
+    #         print(f'Level of reference (0 -> direct, 1 -> indirect): {method["level"]}')
+    #
+    #         print('---------------------------------------------')
 
 
 if __name__ == "__main__":

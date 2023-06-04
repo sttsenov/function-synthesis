@@ -107,8 +107,8 @@ def update_parameter_references(references, method_line, argument,
         # Or the 'refs' field which is a list
         if match_param_field == 'refs' and len(ref['refs']) > curr_level - 1:
             vals_to_match = ref['refs'][curr_level - 1]
-            print(f'Level {curr_level} ref array for param {ref["param"]}: {vals_to_match}')
-            print(f'Line: {method_line}')
+            # print(f'Level {curr_level} ref array for param {ref["param"]}: {vals_to_match}')
+            # print(f'Line: {method_line}')
 
             for val in vals_to_match:
                 if match_parameter(val, method_line):
@@ -171,6 +171,7 @@ def update_reference_with_method(references, method_line, method_dict, builtin_m
                 extend_possible_types(ref, 0, possible_types)
                 continue
 
+        should_stop = False
         # Don't judge my naming conventions, I already judge them
         for curr_level in range(len(ref['refs'])):
             r = ref['refs'][curr_level]
@@ -182,10 +183,11 @@ def update_reference_with_method(references, method_line, method_dict, builtin_m
                     possible_types.update(builtin_method_types)
                     noted_method_calls.append(method_dict)
 
+                    should_stop = True
                     break
 
-            # Update the level of referencing
-            curr_level += 1
+            if should_stop:
+                break
 
         ref['method_calls'].extend(noted_method_calls)
         if len(noted_method_calls) > 0:
@@ -353,7 +355,7 @@ class OperatorClass:
             # Get only operations that store value
             # NOTE: Store operations should be treated independently
             if instr.opname.startswith('STORE_'):
-                print(instr)
+                # print(instr)
                 # Get the actual line of code (done after the if because negative indexes are a thing)
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
 
@@ -363,12 +365,12 @@ class OperatorClass:
                     argument = grab_argval(code_line)
 
                 # Store the arguments and lines into a separate dict to capture the level of abstraction
-                if argument in possible_param_references.keys():
-                    param_ref_list = [possible_param_references[argument], code_line]
-                    possible_param_references[argument] = param_ref_list
-                else:
-                    possible_param_references[argument] = code_line
-                # update_parameter_references(references, code_line, argument)
+                # if argument in possible_param_references.keys():
+                #     param_ref_list = [possible_param_references[argument], code_line]
+                #     possible_param_references[argument] = param_ref_list
+                # else:
+                #     possible_param_references[argument] = code_line
+                update_parameter_references(references, code_line, argument)
 
             if instr.opname.__contains__('_SUBSCR'):
                 # print(instr)
@@ -448,16 +450,17 @@ class OperatorClass:
                     'line': code_line.replace('\n', ''),
                 })
 
-        print(f'Possible Param Ref: {possible_param_references}')
-        abstraction_level = len(possible_param_references)
-        for arg, value in possible_param_references.items():
-            if type(value) == list:
-                for line in value:
-                    update_parameter_references(references, line, arg, run=abstraction_level)
-            else:
-                update_parameter_references(references, value, arg, run=abstraction_level)
+        # print(f'Possible Param Ref: {possible_param_references}')
+        # abstraction_level = len(possible_param_references)
+        # for arg, value in possible_param_references.items():
+        #     if type(value) == list:
+        #         for line in value:
+        #             update_parameter_references(references, line, arg, run=abstraction_level)
+        #     else:
+        #         update_parameter_references(references, value, arg, run=abstraction_level)
 
         # Check if any of the parameters have been used in a method call
+        print(possible_method_calls)
         for method_info in possible_method_calls:
             method_name = method_info['name']
             method_line = method_info['line']
