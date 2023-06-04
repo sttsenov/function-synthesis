@@ -48,5 +48,14 @@ Currently, this project doesn't have a good way to create connections between pa
 For example ```x = p0 * p1``` means that local variable **x** refers to both parameters
 but that doesn't necessarily mean that it can be used to guess the type of both parameters.
 
-Another limitation is that the project can only record a direct reference to a parameter.
-Meaning that a line like: ```y = x.startswith('...')``` will not be recorded.
+Another limitation is that the project has a limit to the level of abstraction it can capture when it comes to references to parameters.
+The current number of abstraction level is five, which can be seen as something like this:
+```python
+def function(p0):
+    a = p0      # level 1 - direct reference to a parameter
+    b = a       # level 2 - indirect reference to a parameter
+    c = b       # level 3
+    d = c       # level 4
+    e = d       # level 5
+```
+Anything more abstract that the example above will not be recorded by the current version of the algorithm

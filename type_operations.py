@@ -94,6 +94,57 @@ def extend_possible_types(ref, index, possible_types):
         ref['possible_types'].append(possible_types)
 
 
+def update_parameter_references(references, method_line, argument,
+                                match_param_field='param', curr_level=0, run=5):
+
+    # Go through the parameters
+    for ref in references:
+        # Grab the value that needs to be matched
+        # Either the 'param' field direct which is a str
+        # Or the 'refs' field which is a list
+        if match_param_field == 'refs' and len(ref['refs']) > curr_level - 1:
+            vals_to_match = ref['refs'][curr_level - 1]
+            # print(f'Level {curr_level} ref array for param {ref["param"]}: {vals_to_match}')
+            # print(f'Line: {method_line}')
+
+            for val in vals_to_match:
+                if match_parameter(val, method_line):
+                    ref_set = set(vals_to_match)
+
+                    if argument not in ref_set:
+                        # Update the current level of referencing
+                        if len(ref['refs']) == curr_level + 1:
+                            r_set = set(ref['refs'][curr_level])
+                            r_set.update(argument)
+                            ref['refs'][curr_level] = list(r_set)
+
+                        # Create new level of referencing
+                        else:
+                            ref['refs'].append([argument])
+                pass
+        # Looking at the first level of indirect references that refer to the parameters
+        elif match_param_field == 'param' and match_parameter(ref['param'], method_line):
+            # Check if an indirect level reference already exists
+            # if so append the argument to it
+            if len(ref['refs']) > curr_level:
+                ref_set = set(ref['refs'][curr_level])
+                ref_set.update(argument)
+                ref['refs'][curr_level] = list(ref_set)
+
+            # Create a new reference level and store the argument
+            else:
+                ref_set = set(ref['refs'])
+                ref_set.update(argument)
+                ref['refs'].append(list(ref_set))
+
+    curr_level += 1
+    # TO-DO: Change 'run'
+    # The question now is, how do we call this method recursively, with a good exit condition?
+    for i in range(run - 1, -1, -1):
+        # print(f'Bravo Six: Going Dark. Run: {i}, Level: {curr_level}')
+        update_parameter_references(references, method_line, argument, 'refs', curr_level, i)
+
+
 def update_reference_with_method(references, method_line, method_dict, builtin_method_types):
     for ref in references:
         # TO-DO: Figure out a set operation for the possible_types field
@@ -118,14 +169,20 @@ def update_reference_with_method(references, method_line, method_dict, builtin_m
                 continue
 
         # Don't judge my naming conventions, I already judge them
-        for r in ref['refs']:
-            if match_parameter(r, method_line):
-                method_dict['level'] = 1  # Refers to an indirect parameter reference
+        for curr_level in range(len(ref['refs'])):
+            r = ref['refs'][curr_level]
+            # Doesn't everyone love nested loops....
+            for var in r:
+                if match_parameter(var, method_line):
+                    method_dict['level'] = curr_level + 1  # Refers to an indirect parameter reference
 
-                possible_types.update(builtin_method_types)
-                noted_method_calls.append(method_dict)
+                    possible_types.update(builtin_method_types)
+                    noted_method_calls.append(method_dict)
 
-                break
+                    break
+
+            # Update the level of referencing
+            curr_level += 1
 
         ref['method_calls'].extend(noted_method_calls)
         if len(noted_method_calls) > 0:
@@ -240,6 +297,11 @@ class OperatorClass:
         :param func_body: allows to get the actual line of code inside the body
         :return: a reference map
         """
+
+        # TO-DO: Figure out a level of abstraction that will be able to handle other levels of referencing
+        # and will be able to remove one of the current limitations of the algorithm
+
+        # TO-DO: Eventually work on dealing with type hints, args and kwargs...
         references = []
 
         # Get the function's code object
@@ -290,6 +352,7 @@ class OperatorClass:
             # Get only operations that store value
             # NOTE: Store operations should be treated independently
             if instr.opname.startswith('STORE_'):
+                # print(instr)
                 # Get the actual line of code (done after the if because negative indexes are a thing)
                 code_line = func_body[instr.positions.lineno - self._OFFSET]
 
@@ -298,11 +361,7 @@ class OperatorClass:
                 if argument is None:
                     argument = grab_argval(code_line)
 
-                for ref in references:
-                    if match_parameter(ref['param'], code_line):
-                        ref_set = set(ref['refs'])  # dumb ass naming
-                        ref_set.update(argument)
-                        ref['refs'] = list(ref_set)
+                update_parameter_references(references, code_line, argument)
 
             if instr.opname.__contains__('_SUBSCR'):
                 # print(instr)
@@ -392,6 +451,7 @@ class OperatorClass:
             if len(builtin_method_types) == 0:
                 continue
 
+            # TO-DO: There's a bug that records stuff twice: z = y / 10
             method_dict = make_method_dict(method_info, builtin_method_types)
             update_reference_with_method(references, method_line, method_dict, builtin_method_types)
 
