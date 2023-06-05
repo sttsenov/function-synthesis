@@ -12,14 +12,14 @@ def function(p0, p1):
     z = y / 10
     d = x
     p = d
+    f = y
 
     p = p / 10
     a = p
+    b = a
     return p0 / p1
 """
 
-
-# NOTE: Adding something like 'b = x' breaks the recursion algorithm
 
 def breakdown_func(input_str: str):
     breakdown = {}

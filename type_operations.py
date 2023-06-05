@@ -98,37 +98,57 @@ def extend_possible_types(ref, index, possible_types):
         ref['possible_types'].append(possible_types)
 
 
-def update_parameter_references(references, method_line, argument,
-                                match_param_field='param', curr_level=0, run=5):
+def update_parameter_references(references, method_line, argument, match_param_field='param'):
     # Go through the parameters
     for ref in references:
-        # Grab the value that needs to be matched
-        # Either the 'param' field direct which is a str
-        # Or the 'refs' field which is a list
-        if match_param_field == 'refs' and len(ref['refs']) > curr_level - 1:
-            vals_to_match = ref['refs'][curr_level - 1]
-            # print(f'Level {curr_level} ref array for param {ref["param"]}: {vals_to_match}')
-            # print(f'Line: {method_line}')
+        # Check if we are checking for direct or indirect references: 'param' or 'refs'
+        if match_param_field == 'refs':
+            should_stop = False
+            ref_set = set()
 
-            for val in vals_to_match:
-                if match_parameter(val, method_line):
-                    ref_set = set(vals_to_match)
+            # Generate a set of all recorded references
+            for r in ref['refs']:
+                ref_set.update(r)
 
-                    if argument not in ref_set:
-                        # Update the current level of referencing
-                        if len(ref['refs']) == curr_level + 1:
-                            r_set = set(ref['refs'][curr_level])
+            # Iterate through the levels of indirect references
+            for level_index in range(len(ref['refs'])):
+                # Grab the recorded references for the current level
+                recorded_level = ref['refs'][level_index]
+
+                # Early stopping if an argument has been recorded
+                if argument in ref_set:
+                    break
+
+                # Iterate through the recorded values
+                for val in recorded_level:
+                    # Check for match
+                    if match_parameter(val, method_line):
+                        # If new level of referencing has been recorded
+                        # then update the next level with the new argument
+                        if level_index + 1 < len(ref['refs']):
+                            next_level = level_index + 1
+                            r_set = set(ref['refs'][next_level])
                             r_set.update(argument)
-                            ref['refs'][curr_level] = list(r_set)
+                            ref['refs'][next_level] = list(r_set)
 
-                        # Create new level of referencing
-                        else:
+                        # Check if we are on the last recorded level
+                        # and create a new level
+                        if len(ref['refs']) == level_index + 1:
                             ref['refs'].append([argument])
-                pass
+
+                        should_stop = True
+                        break
+
+                # Stop iterating and recording
+                if should_stop:
+                    break
+
         # Looking at the first level of indirect references that refer to the parameters
         elif match_param_field == 'param' and match_parameter(ref['param'], method_line):
             # Check if an indirect level reference already exists
             # if so append the argument to it
+            curr_level = 0
+
             if len(ref['refs']) > curr_level:
                 ref_set = set(ref['refs'][curr_level])
                 ref_set.update(argument)
@@ -140,12 +160,10 @@ def update_parameter_references(references, method_line, argument,
                 ref_set.update(argument)
                 ref['refs'].append(list(ref_set))
 
-    curr_level += 1
-    # TO-DO: Change 'run'
-    # The question now is, how do we call this method recursively, with a good exit condition?
-    for i in range(run - 1, -1, -1):
-        # print(f'Bravo Six: Going Dark. Run: {i}, Level: {curr_level}')
-        update_parameter_references(references, method_line, argument, 'refs', curr_level, i)
+    # Checks if 'refs' field has been computed
+    if match_param_field == 'refs':
+        return
+    update_parameter_references(references, method_line, argument, 'refs')
 
 
 def update_reference_with_method(references, method_line, method_dict, builtin_method_types):
@@ -329,7 +347,6 @@ class OperatorClass:
 
         instructions = list(dis.get_instructions(code))
         possible_method_calls = []
-        possible_param_references = {}
 
         for instr in instructions:
             # print(instr)
@@ -364,12 +381,6 @@ class OperatorClass:
                 if argument is None:
                     argument = grab_argval(code_line)
 
-                # Store the arguments and lines into a separate dict to capture the level of abstraction
-                # if argument in possible_param_references.keys():
-                #     param_ref_list = [possible_param_references[argument], code_line]
-                #     possible_param_references[argument] = param_ref_list
-                # else:
-                #     possible_param_references[argument] = code_line
                 update_parameter_references(references, code_line, argument)
 
             if instr.opname.__contains__('_SUBSCR'):
@@ -450,15 +461,6 @@ class OperatorClass:
                     'line': code_line.replace('\n', ''),
                 })
 
-        # print(f'Possible Param Ref: {possible_param_references}')
-        # abstraction_level = len(possible_param_references)
-        # for arg, value in possible_param_references.items():
-        #     if type(value) == list:
-        #         for line in value:
-        #             update_parameter_references(references, line, arg, run=abstraction_level)
-        #     else:
-        #         update_parameter_references(references, value, arg, run=abstraction_level)
-
         # Check if any of the parameters have been used in a method call
         print(possible_method_calls)
         for method_info in possible_method_calls:
@@ -470,7 +472,6 @@ class OperatorClass:
             if len(builtin_method_types) == 0:
                 continue
 
-            # TO-DO: There's a bug that records stuff twice: z = y / 10
             method_dict = make_method_dict(method_info, builtin_method_types)
             update_reference_with_method(references, method_line, method_dict, builtin_method_types)
 

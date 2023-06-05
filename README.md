@@ -48,14 +48,12 @@ Currently, this project doesn't have a good way to create connections between pa
 For example ```x = p0 * p1``` means that local variable **x** refers to both parameters
 but that doesn't necessarily mean that it can be used to guess the type of both parameters.
 
-Another limitation is that the project has a limit to the level of abstraction it can capture when it comes to references to parameters.
-The current number of abstraction level is five, which can be seen as something like this:
+Another limitation is the inability to note mutually exclusive operations. For example, the following code:
 ```python
 def function(p0):
-    a = p0      # level 1 - direct reference to a parameter
-    b = a       # level 2 - indirect reference to a parameter
-    c = b       # level 3
-    d = c       # level 4
-    e = d       # level 5
+    letter_count = p0.count('a')
+    is_even = p0 % 2        # Bad Operation
 ```
-Anything more abstract that the example above will not be recorded by the current version of the algorithm
+will result in the algorithm noting two operations (count and %) that map to the string and int data types respectively.
+This is a problem since the algorithm is going the extra mile to record all the operations in the function's body without
+knowing that the function cannot execute with any appropriate data type.
