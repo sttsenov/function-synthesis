@@ -5,19 +5,10 @@ from type_operations import OperatorClass
 
 TEST = """
 def function(p0, p1):
-    x[0] = p0 + 10
-    y[1] = p1[1:2] - p0[2]
-    z = y
-    z = z / 10
-    z = y / 10
-    d = x
-    p = d
-    f = y
+    x = p0 + 10
+    y = p1.startswith('a')
 
-    p = p / 10
-    a = p
-    b = a
-    return p0 / p1
+    return y / x
 """
 
 
@@ -83,20 +74,33 @@ def match_parameters(input_str):
     possible_method_calls = generator.possible_method_calls
     method_calls = []
 
-    try:
-        for method in possible_method_calls:
-            method_str = input_str + f'\n{method}'
+    for method in possible_method_calls:
+        method_str = input_str + f'\n{method}'
 
+        try:
             compiler = compile(method_str, '', 'exec')
             exec(compiler)
 
             method_calls.append(method)
+        except Exception as e:
+            log('ERROR', e)
 
-    except Exception as e:
-        log('ERROR', e)
+    # try:
+    #     for method in possible_method_calls:
+    #         method_str = input_str + f'\n{method}'
     #
-    # print(f'Possible Method Calls: {possible_method_calls}')
-    # print(f'Actual Method Calls: {method_calls}')
+    #         compiler = compile(method_str, '', 'exec')
+    #         exec(compiler)
+    #
+    #         method_calls.append(method)
+    #
+    # except Exception as e:
+    #     log('ERROR', e)
+
+    print(f'Possible Method Calls: {possible_method_calls}')
+    print(f'Actual Method Calls: {method_calls}')
+    print(f'Len Actual Method Calls: {len(method_calls)}')
+
     # print('---------------------------------------------')
     #
     # for ref in references:

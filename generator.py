@@ -5,12 +5,12 @@ from helpers import log
 class Generator:
     _DEFAULT_DATA = {
         'str': '',
-        'bool': True,
+        'bool': [True, False],
         'dict': {},
 
-        'int': 1,
-        'float': 0.1,
-        'complex': 1j,
+        'int': [0, 1],
+        'float': [0.0, 0.1],
+        'complex': [0j, 1j],
 
         'list': [],
         'tuple': (),
@@ -26,7 +26,15 @@ class Generator:
 
     def grab_default_data(self, type_str: str, include_all=False):
         if include_all:
-            return list(self._DEFAULT_DATA.values())
+            return_list = []
+            for val in self._DEFAULT_DATA.values():
+                if isinstance(val, list) and len(val) > 0:
+                    return_list.extend(val)
+                    continue
+
+                return_list.append(val)
+
+            return return_list
 
         for key, value in self._DEFAULT_DATA.items():
             if type_str.__eq__(key):
@@ -45,12 +53,22 @@ class Generator:
         # If there are direct reference guesses then we should just look at them
         if len(direct_ref) > 0:
             for type_str in direct_ref:
-                default_values.append(self.grab_default_data(type_str))
+                default_data = self.grab_default_data(type_str)
+                if isinstance(default_data, list) and len(default_data) > 0:
+                    default_values.extend(default_data)
+                    continue
+
+                default_values.append(default_data)
         # Check if there are indirect references
         elif len(ref['possible_types']) > 1:
             indirect_ref = ref['possible_types'][1]
             for type_str in indirect_ref:
-                default_values.append(self.grab_default_data(type_str))
+                default_data = self.grab_default_data(type_str)
+                if isinstance(default_data, list) and len(default_data) > 0:
+                    default_values.extend(default_data)
+                    continue
+
+                default_values.append(default_data)
 
         return default_values
 
@@ -59,8 +77,10 @@ class Generator:
         possible_method_calls_set = set()
 
         for i in range(len(reference_obj)):
-            ref = reference_obj[i]
-            values_array.append(self.create_default_values(ref))
+            data_values = self.create_default_values(reference_obj[i])
+            print(f'Data Values: {data_values}')
+
+            values_array.append(data_values)
 
         print(f'Values Array: {values_array}')
         for value in list(itertools.product(*values_array)):

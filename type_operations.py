@@ -462,7 +462,6 @@ class OperatorClass:
                 })
 
         # Check if any of the parameters have been used in a method call
-        print(possible_method_calls)
         for method_info in possible_method_calls:
             method_name = method_info['name']
             method_line = method_info['line']
