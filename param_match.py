@@ -3,9 +3,11 @@ from helpers import log
 from parameter_matcher.generator import Generator
 from type_operations import OperatorClass
 
+_EXCEPTION_TEMPLATE = "An exception of type {0} occurred. Arguments:\n{1!r}"
+
 TEST = """
 def function(p0, p1):
-    x = p0 + 10
+    x = p0 + [10]
     p0[0] = 3
     z = p0[0] + 5
     y = p1.startswith('a')
@@ -78,14 +80,21 @@ def match_parameters(input_str):
 
     for method in possible_method_calls:
         method_str = input_str + f'\n{method}'
+        log('INFO', f'Executing with: {method}')
 
         try:
             compiler = compile(method_str, '', 'exec')
             exec(compiler)
 
             method_calls.append(method)
+            log('SUCCESS', f'Execution successful.')
+
         except Exception as e:
-            log('ERROR', e)
+            # TO-DO: Have a look at adding method_calls even when an IndexError happens
+            message = _EXCEPTION_TEMPLATE.format(type(e).__name__, e.args)
+            log('ERROR', message)
+
+        log('INFO', f'Finished Execution with: {method}')
 
     print(f'Possible Method Calls: {possible_method_calls}')
     print(f'Actual Method Calls: {method_calls}')
