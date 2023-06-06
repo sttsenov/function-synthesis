@@ -6,6 +6,8 @@ from type_operations import OperatorClass
 TEST = """
 def function(p0, p1):
     x = p0 + 10
+    p0[0] = 3
+    z = p0[0] + 5
     y = p1.startswith('a')
 
     return y / x
@@ -84,18 +86,6 @@ def match_parameters(input_str):
             method_calls.append(method)
         except Exception as e:
             log('ERROR', e)
-
-    # try:
-    #     for method in possible_method_calls:
-    #         method_str = input_str + f'\n{method}'
-    #
-    #         compiler = compile(method_str, '', 'exec')
-    #         exec(compiler)
-    #
-    #         method_calls.append(method)
-    #
-    # except Exception as e:
-    #     log('ERROR', e)
 
     print(f'Possible Method Calls: {possible_method_calls}')
     print(f'Actual Method Calls: {method_calls}')

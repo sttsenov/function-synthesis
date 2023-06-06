@@ -91,9 +91,10 @@ def extend_possible_types(ref, index, possible_types):
     possible_types = list(possible_types)
     if len(ref['possible_types']) > index:
         # Probably a very ugly way to avoid repeating entries
-        possible_types_set = set(ref['possible_types'][index])
-        possible_types_set.update(possible_types)
-        ref['possible_types'][index] = list(possible_types_set)
+        # possible_types_set = set(ref['possible_types'][index])
+        # possible_types_set.update(possible_types)
+        # ref['possible_types'][index] = list(possible_types_set)
+        pass
     else:
         ref['possible_types'].append(possible_types)
 
@@ -101,6 +102,10 @@ def extend_possible_types(ref, index, possible_types):
 def update_parameter_references(references, method_line, argument, match_param_field='param'):
     # Go through the parameters
     for ref in references:
+
+        if argument == ref['param']:
+            return
+
         # Check if we are checking for direct or indirect references: 'param' or 'refs'
         if match_param_field == 'refs':
             should_stop = False
@@ -381,6 +386,7 @@ class OperatorClass:
                 if argument is None:
                     argument = grab_argval(code_line)
 
+                print(f'Argument: {argument}')
                 update_parameter_references(references, code_line, argument)
 
             if instr.opname.__contains__('_SUBSCR'):

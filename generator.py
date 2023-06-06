@@ -3,6 +3,8 @@ from helpers import log
 
 
 class Generator:
+
+    # TO-DO: Play around with this...empty lists might cause exceptions and what not
     _DEFAULT_DATA = {
         'str': '',
         'bool': [True, False],
