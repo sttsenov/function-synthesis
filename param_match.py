@@ -6,7 +6,8 @@ from type_operations import OperatorClass
 _EXCEPTION_TEMPLATE = "An exception of type {0} occurred. Arguments:\n{1!r}"
 
 TEST = """
-def function(p0, p1):
+def function(p0, p1, p2):
+    a, b = p2.items()
     x = p0 + [10]
     p0[0] = 3
     z = p0[0] + 5

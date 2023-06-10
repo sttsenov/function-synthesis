@@ -20,7 +20,7 @@ import re
 
 
 def match_parameter(param_name, line):
-    return re.search(rf"\b(?=\w){param_name}\b(?!\w)", line)
+    return re.search(rf"\b(?=\w){param_name}\b(?![\w'\"])(?!( +')+)(?!( +\")+)", line)
 
 
 def check_method_takes_args(method_name: str, code_line: str):
@@ -219,7 +219,7 @@ def update_reference_with_method(references, method_line, method_dict, builtin_m
 
 class OperatorClass:
     _OFFSET = 3
-    _SUBSCR_REGEX = re.compile(r'\w+\[[\w:]+\]')
+    _SUBSCR_REGEX = re.compile(r'\w+\[[\w:]+]')
 
     # Text type
     _str_operations = dir(str)
@@ -354,7 +354,7 @@ class OperatorClass:
         possible_method_calls = []
 
         for instr in instructions:
-            # print(instr)
+            print(instr)
 
             # CONTAINS_OP -> el in seq -> __contains__
 
