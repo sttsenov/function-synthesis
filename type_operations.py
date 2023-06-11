@@ -2,10 +2,6 @@ import dis
 import re
 
 
-# TO-DO NEXT:
-# Handle the mutual exclusion of types
-# That has the highest priority right now
-
 # Python Data Types
 # (Provided by W3Schools: https://www.w3schools.com/python/python_datatypes.asp)
 
@@ -90,11 +86,14 @@ def extend_possible_types(ref, index, possible_types):
     """
     possible_types = list(possible_types)
     if len(ref['possible_types']) > index:
-        # Probably a very ugly way to avoid repeating entries
-        # possible_types_set = set(ref['possible_types'][index])
-        # possible_types_set.update(possible_types)
-        # ref['possible_types'][index] = list(possible_types_set)
-        pass
+        # Exclusion that makes sure that types that would cause an exception get removed
+        # For example:
+        #   p0 = 5 + 10 -> will note an int data type for "p0"
+        #   p0[1:3] -> will note a sequence data type for "p0"
+        #   In this case these two might be mutually exclusive
+        possible_types_set = set(ref['possible_types'][index])
+        possible_types_set = possible_types_set.intersection(possible_types)
+        ref['possible_types'][index] = list(possible_types_set)
     else:
         ref['possible_types'].append(possible_types)
 
@@ -173,13 +172,6 @@ def update_parameter_references(references, method_line, argument, match_param_f
 
 def update_reference_with_method(references, method_line, method_dict, builtin_method_types):
     for ref in references:
-        # TO-DO: Figure out a set operation for the possible_types field
-        # There should be exclusion in place that makes sure that types that would cause an exception get removed
-        # For example:
-        #   p0 = 5 + 10 -> will note an int data type for "p0"
-        #   p0[1:3] -> will note a sequence data type for "p0"
-        #   In this case these two might be mutually exclusive
-
         possible_types = set()
         noted_method_calls = []
 

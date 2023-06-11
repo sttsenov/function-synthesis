@@ -89,11 +89,15 @@ def match_parameters(input_str):
 
             method_calls.append(method)
             log('SUCCESS', f'Execution successful.')
-
         except Exception as e:
             # TO-DO: Have a look at adding method_calls even when an IndexError happens
             message = _EXCEPTION_TEMPLATE.format(type(e).__name__, e.args)
             log('ERROR', message)
+
+            # TO-DO: Figure out a way to predetermine whether the data type will cause an exception
+            # if type(e).__name__.__eq__('ValueError'):
+            #     log('INFO', 'Logging regardless...')
+            #     method_calls.append(method)
 
         log('INFO', f'Finished Execution with: {method}')
 
